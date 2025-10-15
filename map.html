@@ -9,10 +9,47 @@
 <style>
 body { margin: 0; padding: 0; }
 #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+.legend {
+    background-color: #fff;
+    border-radius: 3px;
+    bottom: 30px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    padding: 10px;
+    position: absolute;
+    right: 10px;
+    z-index: 1;
+    max-width: 200px;
+}
+
+.legend h4 {
+    margin: 0 0 10px;
+    font-weight: bold;
+}
+
+.legend div span {
+    display: inline-block;
+    height: 4px;
+    margin-right: 5px;
+    width: 30px;
+    vertical-align: middle;
+}
+
+.legend div img {
+    display: inline-block;
+    height: 16px;
+    width: 16px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
 </style>
 </head>
 <body>
 <div id="map"></div>
+<div class="legend" id="legend">
+    <h4>Legend</h4>
+    <div id="legend-content">Loading layers...</div>
+</div>
 <script>
 	mapboxgl.accessToken = 'pk.eyJ1IjoiZ3JvbXBoOTkiLCJhIjoiY2x1NGt5Z3ZnMTd5NzJpbzMwY2g2andtNSJ9.Xks1OhTa4pw29GO4wKzPiw';
     const map = new mapboxgl.Map({
@@ -20,6 +57,69 @@ body { margin: 0; padding: 0; }
         style: 'mapbox://styles/gromph99/clu4l74hj026e01oigmt295hj/draft',
         center: [-123.12328, 42.42930],
         zoom: 11
+    });
+
+    // Add legend
+    map.on('load', function() {
+        const layers = map.getStyle().layers;
+        const legendContent = document.getElementById('legend-content');
+        legendContent.innerHTML = '';
+        
+        // Define which layers to include in legend
+        const includedLayers = ['Paved Path', 'Bikelane', 'Proposed', 'Trailhead', ''];
+        
+        // Iterate through includedLayers to maintain order
+        includedLayers.forEach(layerName => {
+            const layer = layers.find(l => l.id === layerName);
+            
+            if (layer) {
+                const item = document.createElement('div');
+                item.style.marginBottom = '5px';
+                
+                // Special handling for Trailhead
+                if (layer.id === 'Trailhead') {
+                    const img = document.createElement('img');
+                    img.src = 'images/emerald.svg';
+                    img.alt = 'Trailhead';
+                    item.appendChild(img);
+                } else {
+                    // Get color from layer paint properties
+                    let color = '#888';
+                    if (layer.paint) {
+                        color = layer.paint['fill-color'] || 
+                                layer.paint['line-color'] || 
+                                layer.paint['circle-color'] || 
+                                layer.paint['text-color'] || 
+                                '#888';
+                        
+                        // Handle arrays (for data-driven styling)
+                        if (Array.isArray(color)) {
+                            color = color[color.length - 1];
+                        }
+                    }
+                    
+                    const span = document.createElement('span');
+                    
+                    // Special handling for rrg-proposed (yellow and black dashed)
+                    if (layer.id === 'Proposed') {
+                        span.style.background = 'repeating-linear-gradient(90deg, #ffff00 0px, #ffff00 5px, #000000 5px, #000000 10px)';
+                    } else {
+                        span.style.backgroundColor = color;
+                    }
+                    
+                    item.appendChild(span);
+                }
+                
+                const label = document.createTextNode(layer.id);
+                
+                item.appendChild(label);
+                legendContent.appendChild(item);
+            }
+        });
+        
+        if (legendContent.children.length === 0) {
+            legendContent.innerHTML = '<em>No layers to display</em>';
+        }
     });
 </script>
 
