@@ -66,7 +66,7 @@ body { margin: 0; padding: 0; }
         legendContent.innerHTML = '';
         
         // Define which layers to include in legend
-        const includedLayers = ['Paved Path', 'Bikelane', 'Proposed', 'Trailhead', ''];
+        const includedLayers = ['Rogue River Greenway', 'Bikelane', 'Proposed', 'Point of Interest', 'Bear Creek Greenway'];
         
         // Iterate through includedLayers to maintain order
         includedLayers.forEach(layerName => {
@@ -76,11 +76,11 @@ body { margin: 0; padding: 0; }
                 const item = document.createElement('div');
                 item.style.marginBottom = '5px';
                 
-                // Special handling for Trailhead
-                if (layer.id === 'Trailhead') {
+                // Special handling for Point of Interest
+                if (layer.id === 'Point of Interest') {
                     const img = document.createElement('img');
                     img.src = 'images/emerald.svg';
-                    img.alt = 'Trailhead';
+                    img.alt = 'Point of Interest';
                     item.appendChild(img);
                 } else {
                     // Get color from layer paint properties
