@@ -42,6 +42,39 @@ body { margin: 0; padding: 0; }
     margin-right: 5px;
     vertical-align: middle;
 }
+
+.mapboxgl-popup-content {
+    padding: 15px;
+    max-width: 250px;
+}
+
+.popup-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.popup-directions {
+    display: inline-block;
+    margin: 8px 0;
+    padding: 5px 10px;
+    background-color: #4285f4;
+    color: white;
+    text-decoration: none;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.popup-directions:hover {
+    background-color: #357ae8;
+}
+
+.popup-description {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    line-height: 1.4;
+}
 </style>
 </head>
 <body>
@@ -120,6 +153,53 @@ body { margin: 0; padding: 0; }
         if (legendContent.children.length === 0) {
             legendContent.innerHTML = '<em>No layers to display</em>';
         }
+
+        // Add click event for Point of Interest layer
+        map.on('click', 'Point of Interest', function(e) {
+            if (e.features.length > 0) {
+                const feature = e.features[0];
+                const coordinates = e.lngLat;
+                const properties = feature.properties;
+                
+                // Get the text field (adjust property name based on your data)
+                const title = properties.name || properties.text || properties.title || 'Point of Interest';
+                const description = properties.description || properties.desc || '';
+                
+                // Create Google Maps directions link
+                const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${coordinates.lat},${coordinates.lng}`;
+                
+                // Add website link if available
+                const websiteLink = properties.website 
+                    ? `<a href="${properties.website}" target="_blank" class="popup-directions" style="margin-left: 5px;">Website</a>` 
+                    : '';
+                
+                // Add parking information if available
+                const parkingInfo = properties.parking 
+                    ? `<ul style="margin: 8px 0; padding-left: 20px; font-size: 12px;"><li>Parking: ${properties.parking}</li></ul>` 
+                    : '';
+                
+                // Create popup HTML
+                const popupHTML = `
+                    <div class="popup-title">${title}</div>
+                    <a href="${directionsUrl}" target="_blank" class="popup-directions">Get Directions</a>${websiteLink}
+                    <div class="popup-description">${description}</div>${parkingInfo}
+                `;
+                
+                new mapboxgl.Popup()
+                    .setLngLat(coordinates)
+                    .setHTML(popupHTML)
+                    .addTo(map);
+            }
+        });
+
+        // Change cursor to pointer when hovering over POI
+        map.on('mouseenter', 'Point of Interest', function() {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'Point of Interest', function() {
+            map.getCanvas().style.cursor = '';
+        });
     });
 </script>
 
