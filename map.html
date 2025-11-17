@@ -4,11 +4,24 @@
 <meta charset="utf-8">
 <title>Display a map with a custom style</title>
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet">
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js"></script>
+</head>
+<body>
+
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.16.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.16.0/mapbox-gl.js"></script>
 <style>
-body { margin: 0; padding: 0; }
-#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+body {
+    margin: 0;
+    padding: 0;
+}
+
+#map {
+    position: relative;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+}
 .legend {
     background-color: #fff;
     border-radius: 3px;
@@ -20,6 +33,51 @@ body { margin: 0; padding: 0; }
     right: 10px;
     z-index: 1;
     max-width: 200px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.legend.hidden {
+    transform: translateX(calc(100% + 10px));
+    opacity: 0;
+    pointer-events: none;
+}
+
+.legend-toggle,
+.legend-toggle-tab {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.legend-toggle {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 4px 8px;
+    z-index: 2;
+}
+
+.legend-toggle-tab {
+    position: absolute;
+    bottom: 30px;
+    right: 10px;
+    padding: 8px 12px;
+    z-index: 10;
+    display: none;
+}
+
+.legend-toggle:hover,
+.legend-toggle-tab:hover {
+    background-color: #f0f0f0;
+    border-color: #ccc;
+}
+
+.legend-toggle-tab.visible {
+    display: block;
 }
 
 .legend h4 {
@@ -35,7 +93,7 @@ body { margin: 0; padding: 0; }
     vertical-align: middle;
 }
 
-.legend div img {
+#legend-icon {
     display: inline-block;
     height: 16px;
     width: 16px;
@@ -43,9 +101,14 @@ body { margin: 0; padding: 0; }
     vertical-align: middle;
 }
 
+.mapboxgl-popup {
+    max-height: 90vh;
+}
+
 .mapboxgl-popup-content {
     padding: 15px;
     max-width: 250px;
+    overflow-y: auto;
 }
 
 .popup-title {
@@ -76,14 +139,52 @@ body { margin: 0; padding: 0; }
     line-height: 1.4;
 }
 </style>
-</head>
-<body>
-<div id="map"></div>
-<div class="legend" id="legend">
-    <h4>Legend</h4>
-    <div id="legend-content">Loading layers...</div>
+<div id="map">
+    <div class="legend" id="legend">
+        <button class="legend-toggle" id="legend-toggle" onclick="toggleLegend()">»</button>
+        <h4>Legend</h4>
+        <div id="legend-content">Loading layers...</div>
+    </div>
+    <button class="legend-toggle-tab" id="legend-toggle-tab" onclick="toggleLegend()">«</button>
 </div>
 <script>
+    // Calculate and set map height based on its position
+    let lastOrientation = screen.orientation?.angle;
+    
+    function setMapHeight() {
+        const mapElement = document.getElementById('map');
+        const mapTop = mapElement.getBoundingClientRect().top;
+        const availableHeight = window.innerHeight - mapTop;
+        mapElement.style.height = `${availableHeight}px`;
+        lastOrientation = screen.orientation?.angle;
+        
+        // Tell Mapbox to resize after height change
+        if (typeof map !== 'undefined') {
+            map.resize();
+        }
+    }
+    
+    // Detect if device is mobile/touch
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('isMobile:', isMobile);
+    
+    // Set height on load
+    window.addEventListener('load', setMapHeight);
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (isMobile) {
+            // On mobile, only resize if orientation changed
+            const currentOrientation = screen.orientation?.angle;
+            if (currentOrientation !== lastOrientation) {
+                setTimeout(setMapHeight, 100);
+            }
+        } else {
+            // On desktop, always resize
+            setMapHeight();
+        }
+    });
+    
 	mapboxgl.accessToken = 'pk.eyJ1IjoiZ3JvbXBoOTkiLCJhIjoiY2x1NGt5Z3ZnMTd5NzJpbzMwY2g2andtNSJ9.Xks1OhTa4pw29GO4wKzPiw';
     const map = new mapboxgl.Map({
         container: 'map', // container ID
@@ -91,6 +192,7 @@ body { margin: 0; padding: 0; }
         center: [-123.12328, 42.42930],
         zoom: 11
     });
+    map.addControl(new mapboxgl.FullscreenControl(), 'top-left');
 
     // Add legend
     map.on('load', function() {
@@ -112,7 +214,8 @@ body { margin: 0; padding: 0; }
                 // Special handling for Point of Interest
                 if (layer.id === 'Point of Interest') {
                     const img = document.createElement('img');
-                    img.src = 'images/emerald.svg';
+                    img.id = 'legend-icon';
+                    img.src = 'https://roguerivergreenway.org/wp-content/uploads/2025/11/map_emerald.png';
                     img.alt = 'Point of Interest';
                     item.appendChild(img);
                 } else {
@@ -185,10 +288,23 @@ body { margin: 0; padding: 0; }
                     <div class="popup-description">${description}</div>${parkingInfo}
                 `;
                 
-                new mapboxgl.Popup()
+                // Calculate max height as 90% of map height
+                const mapHeight = map.getContainer().offsetHeight;
+                const maxPopupHeight = mapHeight * 0.9;
+                
+                const popup = new mapboxgl.Popup()
                     .setLngLat(coordinates)
                     .setHTML(popupHTML)
                     .addTo(map);
+                
+                // Set max-height after popup is added
+                const popupElement = popup.getElement();
+                const popupContent = popupElement.querySelector('.mapboxgl-popup-content');
+                if (popupElement && popupContent) {
+                    popupElement.style.maxHeight = `${maxPopupHeight}px`;
+                    popupContent.style.maxHeight = `${maxPopupHeight}px`;
+                    popupContent.style.overflowY = 'auto';
+                }
             }
         });
 
@@ -201,7 +317,23 @@ body { margin: 0; padding: 0; }
             map.getCanvas().style.cursor = '';
         });
     });
+
+    // Toggle legend function
+    function toggleLegend() {
+        const legend = document.getElementById('legend');
+        const toggleButton = document.getElementById('legend-toggle');
+        const tabButton = document.getElementById('legend-toggle-tab');
+        
+        if (legend.classList.contains('hidden')) {
+            legend.classList.remove('hidden');
+            tabButton.classList.remove('visible');
+        } else {
+            legend.classList.add('hidden');
+            tabButton.classList.add('visible');
+        }
+    }
 </script>
+
 
 </body>
 </html>
